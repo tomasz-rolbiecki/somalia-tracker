@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Somalia Political Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050505;
+    --surface: #0e0e0e;
+    --surface-2: #161616;
+    --border: #1f1f1f;
+    --border-strong: #2e2e2e;
+    --text: #f0f0ee;
+    --text-muted: #8c8c87;
+    --text-faint: #525250;
+    --accent: #f5d914;        /* extrac yellow */
+    --accent-dim: #b39d10;
+
+    /* Category palette */
+    --cat-amber: #f5d914;      /* federal gov */
+    --cat-blue: #6aa6e0;       /* FMS parent */
+    --cat-blue-1: #4e8ccc;     /* Puntland */
+    --cat-blue-2: #6fb3db;     /* Jubaland */
+    --cat-blue-3: #89c4e6;     /* Galmudug */
+    --cat-blue-4: #5b9fd4;     /* Hirshabelle */
+    --cat-blue-5: #3d7ab8;     /* Southwest */
+    --cat-purple: #b08cd0;     /* Somaliland (contested) */
+    --cat-green: #7fc06b;      /* Security Forces (state) */
+    --cat-red: #e54848;        /* Al-Shabaab */
+    --cat-crimson: #9a2a2a;    /* ISIS-Somalia */
+    --cat-teal: #5fb8ac;       /* Foreign Relations */
+    --cat-lavender: #c9a6d9;   /* Elections */
+
+    /* Legacy aliases used elsewhere in the sheet */
+    --blue: var(--cat-blue);
+    --red: var(--cat-red);
+    --green: var(--cat-green);
+    --purple: var(--cat-purple);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 14.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Subtle grid background, very faint */
+  body {
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.012) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.012) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-attachment: fixed;
+  }
+
+  ::selection { background: var(--accent); color: #000; }
+
+  /* ------ HEADER ------ */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 48px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 80px;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .masthead h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    font-size: 44px;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .masthead h1 .accent {
+    color: var(--accent);
+  }
+  .masthead h1 .light {
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: var(--text-muted);
+  }
+  .masthead .sub {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted);
+    padding-top: 8px;
+  }
+  .status .dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  button.refresh {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  button.refresh:hover {
+    background: #fae73c;
+    transform: translateY(-1px);
+  }
+  button.refresh:disabled { opacity: 0.4; cursor: wait; transform: none; }
+  button.refresh.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  button.refresh.secondary:hover {
+    background: rgba(245,217,20,0.1);
+    color: #fae73c;
+  }
+
+  /* ------ CONTROLS ------ */
+  .controls {
+    padding: 22px 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+  }
+
+  .search {
+    flex: 1;
+    min-width: 240px;
+    max-width: 380px;
+    position: relative;
+  }
+  .search input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 11px 14px 11px 38px;
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 140ms ease;
+  }
+  .search input::placeholder { color: var(--text-faint); }
+  .search input:focus { border-color: var(--accent); }
+  .search::before {
+    content: '⌕';
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    font-size: 16px;
+  }
+
+  .pill-group { display: flex; gap: 4px; flex-wrap: wrap; }
+  .pill {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 140ms ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+  .pill.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .pill .count {
+    font-size: 10px;
+    opacity: 0.65;
+    font-weight: 600;
+  }
+
+  /* Category pill group: allow wrapping with a visual rhythm */
+  .pill-group-categories {
+    gap: 4px;
+    row-gap: 6px;
+  }
+
+  /* Child pills (nested states under FMS) — indented, smaller, with a leading bullet */
+  .pill-child {
+    font-size: 10px;
+    padding: 6px 11px 6px 18px;
+    position: relative;
+    margin-left: 2px;
+  }
+  .pill-child::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    width: 5px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.5;
+  }
+
+  /* Category colors applied as left border + subtle hover tint. Active state is
+     already handled by .pill.active (yellow) so we only theme the border. */
+  .pill-amber    { border-left: 2px solid var(--cat-amber); }
+  .pill-blue     { border-left: 2px solid var(--cat-blue); }
+  .pill-blue-1   { border-left: 2px solid var(--cat-blue-1); }
+  .pill-blue-2   { border-left: 2px solid var(--cat-blue-2); }
+  .pill-blue-3   { border-left: 2px solid var(--cat-blue-3); }
+  .pill-blue-4   { border-left: 2px solid var(--cat-blue-4); }
+  .pill-blue-5   { border-left: 2px solid var(--cat-blue-5); }
+  .pill-purple   { border-left: 2px solid var(--cat-purple); }
+  .pill-green    { border-left: 2px solid var(--cat-green); }
+  .pill-red      { border-left: 2px solid var(--cat-red); }
+  .pill-crimson  { border-left: 2px solid var(--cat-crimson); }
+  .pill-teal     { border-left: 2px solid var(--cat-teal); }
+  .pill-lavender { border-left: 2px solid var(--cat-lavender); }
+
+  /* ------ LAYOUT ------ */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 0;
+    min-height: calc(100vh - 200px);
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  /* ------ FEED ------ */
+  .feed {
+    padding: 12px 48px 80px;
+  }
+
+  .feed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 24px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .feed-header .label {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+  }
+  .feed-header .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  article.story {
+    padding: 26px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 28px;
+    transition: background 160ms ease;
+  }
+  article.story:hover { background: rgba(245,217,20,0.015); }
+
+  .story-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    line-height: 1.5;
+    padding-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .story-time .day {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0;
+    margin-bottom: 2px;
+  }
+
+  .story-body h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+  .story-body h2 a {
+    color: var(--text);
+    text-decoration: none;
+    transition: color 140ms ease;
+  }
+  .story-body h2 a:hover { color: var(--accent); }
+
+  .story-title-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    transition: color 140ms ease;
+    display: inline;
+  }
+  .story-title-btn:hover { color: var(--accent); }
+  .story-title-btn:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .story-snippet {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* AI-generated English summary */
+  .story-summary {
+    color: var(--text);
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    background: rgba(245,217,20,0.04);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+  }
+  .summary-label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .summary-pending {
+    color: var(--text-faint);
+    font-style: italic;
+    font-size: 12.5px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .story-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+  }
+  .story-source {
+    color: var(--text-muted);
+  }
+  .tag {
+    padding: 4px 9px;
+    border: 1px solid;
+    border-radius: 0;
+  }
+
+  /* Tag colors — keyed on category.color property (see CATEGORIES registry) */
+  .tag.color-amber    { color: var(--cat-amber);    border-color: rgba(245,217,20,0.4); }
+  .tag.color-blue     { color: var(--cat-blue);     border-color: rgba(106,166,224,0.4); }
+  .tag.color-blue-1   { color: var(--cat-blue-1);   border-color: rgba(78,140,204,0.4); }
+  .tag.color-blue-2   { color: var(--cat-blue-2);   border-color: rgba(111,179,219,0.4); }
+  .tag.color-blue-3   { color: var(--cat-blue-3);   border-color: rgba(137,196,230,0.4); }
+  .tag.color-blue-4   { color: var(--cat-blue-4);   border-color: rgba(91,159,212,0.4); }
+  .tag.color-blue-5   { color: var(--cat-blue-5);   border-color: rgba(61,122,184,0.4); }
+  .tag.color-purple   { color: var(--cat-purple);   border-color: rgba(176,140,208,0.4); }
+  .tag.color-green    { color: var(--cat-green);    border-color: rgba(127,192,107,0.4); }
+  .tag.color-red      { color: var(--cat-red);      border-color: rgba(229,72,72,0.4); }
+  .tag.color-crimson  { color: var(--cat-crimson);  border-color: rgba(154,42,42,0.5); }
+  .tag.color-teal     { color: var(--cat-teal);     border-color: rgba(95,184,172,0.4); }
+  .tag.color-lavender { color: var(--cat-lavender); border-color: rgba(201,166,217,0.4); }
+
+  /* AS-aligned warning */
+  .flag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--red);
+    border: 1px solid var(--red);
+    color: #fff;
+    padding: 4px 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+  .flag-badge::before { content: '⚠'; font-size: 11px; }
+  article.story.flagged {
+    border-left: 3px solid var(--red);
+    padding-left: 18px;
+    margin-left: -21px;
+    background: rgba(229,72,72,0.025);
+  }
+  .source-row.flagged { color: var(--red); }
+  .source-row.flagged::after { content: ' ⚠'; }
+
+  /* ------ SIDEBAR ------ */
+  aside {
+    border-left: 1px solid var(--border);
+    padding: 28px 30px;
+    background: var(--surface);
+  }
+  aside h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  aside h3::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  aside section { margin-bottom: 36px; }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .label {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text);
+  }
+  .stat-row .swatch { width: 8px; height: 8px; flex-shrink: 0; }
+  .stat-row .swatch.color-amber    { background: var(--cat-amber); }
+  .stat-row .swatch.color-blue     { background: var(--cat-blue); }
+  .stat-row .swatch.color-blue-1   { background: var(--cat-blue-1); }
+  .stat-row .swatch.color-blue-2   { background: var(--cat-blue-2); }
+  .stat-row .swatch.color-blue-3   { background: var(--cat-blue-3); }
+  .stat-row .swatch.color-blue-4   { background: var(--cat-blue-4); }
+  .stat-row .swatch.color-blue-5   { background: var(--cat-blue-5); }
+  .stat-row .swatch.color-purple   { background: var(--cat-purple); }
+  .stat-row .swatch.color-green    { background: var(--cat-green); }
+  .stat-row .swatch.color-red      { background: var(--cat-red); }
+  .stat-row .swatch.color-crimson  { background: var(--cat-crimson); }
+  .stat-row .swatch.color-teal     { background: var(--cat-teal); }
+  .stat-row .swatch.color-lavender { background: var(--cat-lavender); }
+
+  .stat-row.stat-child {
+    padding-left: 16px;
+    position: relative;
+    font-size: 12.5px;
+  }
+  .stat-row.stat-child::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    width: 6px;
+    height: 1px;
+    background: var(--border-strong);
+  }
+  .stat-row.stat-child .label {
+    color: var(--text-muted);
+  }
+  .stat-row .num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .source-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .source-row .num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-faint);
+  }
+
+  /* ------ MERGED SOURCES PANEL (v2) ------ */
+  .source-row-v2 {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+  }
+  .source-row-v2:last-child { border-bottom: none; }
+  .source-row-v2.flagged .source-name { color: var(--red); }
+  .source-row-v2.flagged .source-name::after { content: ' ⚠'; }
+  .source-row-v2.orphan .source-name em {
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-left: 4px;
+  }
+
+  .source-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .source-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .source-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .source-sub {
+    margin-top: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+  .source-last {
+    color: var(--text-faint);
+  }
+  .source-last.never {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .source-url-row {
+    display: none;
+    margin-top: 8px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .source-row-v2:hover .source-url-row { display: flex; }
+  .source-url {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .source-url:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .source-copy {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: all 140ms ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .source-copy:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .source-copy.copied {
+    color: var(--green);
+    border-color: var(--green);
+  }
+  .source-copy.failed {
+    color: var(--red);
+    border-color: var(--red);
+  }
+
+  /* ------ STATES ------ */
+  .empty, .loading {
+    text-align: center;
+    padding: 100px 20px;
+    color: var(--text-faint);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 400;
+  }
+  .loading::after {
+    content: '...';
+    animation: dots 1.4s steps(4, end) infinite;
+  }
+  @keyframes dots { 0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'} }
+
+  .error-banner {
+    background: rgba(229,72,72,0.08);
+    border-left: 3px solid var(--red);
+    color: var(--red);
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+  }
+
+  /* ------ FOOTER ------ */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 18px 48px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--surface);
+  }
+  footer a { color: var(--text-muted); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  /* ------ MODAL ------ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 180ms ease;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    width: 100%;
+    max-width: 720px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 0 1px rgba(245,217,20,0.08), 0 24px 60px rgba(0,0,0,0.6);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 140ms ease;
+  }
+  .modal-close:hover { color: var(--accent); }
+
+  .modal-body {
+    padding: 22px 28px;
+    overflow-y: auto;
+  }
+  .modal-help {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .modal-help code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg);
+    padding: 2px 6px;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+  .modal-help strong { color: var(--text); }
+
+  #paste-input {
+    width: 100%;
+    min-height: 280px;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    outline: none;
+    resize: vertical;
+    transition: border-color 140ms ease;
+  }
+  #paste-input::placeholder { color: var(--text-faint); }
+  #paste-input:focus { border-color: var(--accent); }
+
+  .paste-feedback {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    min-height: 18px;
+  }
+  .paste-feedback.ok { color: var(--green); }
+  .paste-feedback.err { color: var(--red); }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 18px 28px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .btn-primary, .btn-secondary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    padding: 11px 18px;
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    transition: all 140ms ease;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #fae73c; transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text-muted); }
+
+  /* ------ PREVIEW MODAL ------ */
+  .preview-modal { max-width: 640px; }
+  .preview-modal .modal-header h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    text-transform: none;
+    padding-right: 16px;
+  }
+  .preview-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+  }
+  .preview-meta .preview-flag {
+    background: var(--red);
+    color: #fff;
+    padding: 3px 8px;
+    font-weight: 700;
+  }
+  .preview-meta .preview-flag::before { content: '⚠ '; }
+  .preview-summary-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .preview-summary {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text);
+    background: rgba(245,217,20,0.04);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+  }
+  .preview-summary.empty {
+    color: var(--text-faint);
+    font-style: italic;
+    background: transparent;
+    border-left-color: var(--border);
+  }
+  a.btn-primary {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* ------ 24H BRIEF MODAL ------ */
+  .brief-modal { max-width: 760px; }
+  .brief-modal .modal-body { max-height: 70vh; }
+  .brief-window {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brief-window .brief-window-label { color: var(--accent); font-weight: 600; }
+  .brief-window .brief-window-count { color: var(--text); }
+
+  .brief-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-faint);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-style: italic;
+    font-size: 16px;
+  }
+  .brief-empty strong { color: var(--accent); font-style: normal; }
+
+  .brief-section {
+    margin-bottom: 28px;
+  }
+  .brief-section:last-child { margin-bottom: 0; }
+  .brief-section h3 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .brief-section h3 .brief-section-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-faint);
+    letter-spacing: 0.14em;
+  }
+
+  .brief-section.brief-adversarial h3 {
+    color: var(--cat-red);
+    border-bottom-color: rgba(229,72,72,0.3);
+  }
+  .brief-section.brief-adversarial h3::before { content: '⚠ '; }
+
+  .brief-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .brief-item:last-child { border-bottom: none; }
+  .brief-item-title {
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 4px;
+    text-decoration: none;
+    display: block;
+  }
+  .brief-item-title:hover { color: var(--accent); }
+  .brief-item-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .brief-item-meta .brief-dup {
+    color: var(--cat-teal);
+    border: 1px solid rgba(95,184,172,0.4);
+    padding: 1px 6px;
+  }
+
+  .brief-feedback {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    min-height: 16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Article preview modal -->
+<div class="modal-backdrop" id="preview-modal" hidden>
+  <div class="modal preview-modal">
+    <div class="modal-header">
+      <h2 id="preview-title">Article preview</h2>
+      <button class="modal-close" id="preview-close" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="preview-meta" id="preview-meta"></div>
+      <div class="preview-summary-label">Summary</div>
+      <div class="preview-summary" id="preview-summary"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="preview-cancel">Close</button>
+      <a class="btn-primary" id="preview-open" href="#" target="_blank" rel="noopener">Open original article ↗</a>
+    </div>
+  </div>
+</div>
+
+<!-- 24h Brief modal -->
+<div class="modal-backdrop" id="brief-modal" hidden>
+  <div class="modal brief-modal">
+    <div class="modal-header">
+      <h2>24-Hour Brief</h2>
+      <button class="modal-close" id="brief-close" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="brief-window" id="brief-window"></div>
+      <div class="brief-content" id="brief-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="brief-cancel">Close</button>
+      <button class="btn-secondary" id="brief-copy-md" type="button">Copy as Markdown</button>
+      <button class="btn-primary" id="brief-copy-ai" type="button">Copy AI Prompt ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- Paste-feed modal -->
+<div class="modal-backdrop" id="paste-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Paste RSS Feed</h2>
+      <button class="modal-close" id="modal-close" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-help">
+        Open the RSS feed URL in your browser, right-click → <strong>View Page Source</strong>,
+        select all, copy, and paste below. Items are merged into your local archive — duplicates
+        are filtered automatically. Tip: hover any source in the <strong>Sources</strong> panel to
+        copy its feed URL.
+      </p>
+      <textarea id="paste-input" placeholder="<?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#10;<rss version=&quot;2.0&quot;>&#10;  ...paste full feed XML here..." spellcheck="false"></textarea>
+      <div id="paste-feedback" class="paste-feedback"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="paste-submit">Ingest Feed</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="masthead">
+    <h1>Somalia<br><span class="accent">Tracker</span><span class="light">.intel</span></h1>
+    <div class="sub">Auto-sync · Federal · Regional · Security · Diplomacy · Electoral</div>
+  </div>
+  <div class="status">
+    <span class="dot"></span>
+    <span id="status-text">Initializing</span>
+    <button class="refresh secondary" id="brief-btn">⟐ 24h Brief</button>
+    <button class="refresh" id="paste-btn">+ Paste RSS Feed</button>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="search">
+    <input id="search" type="text" placeholder="Search keywords, names, places..." />
+  </div>
+  <div class="pill-group" id="date-pills">
+    <button class="pill" data-days="1">24h</button>
+    <button class="pill" data-days="3">3d</button>
+    <button class="pill active" data-days="7">7d</button>
+    <button class="pill" data-days="30">30d</button>
+    <button class="pill" data-days="0">All</button>
+  </div>
+  <div class="pill-group pill-group-categories" id="category-pills">
+    <button class="pill active" data-cat="all">All <span class="count" id="count-all">0</span></button>
+    <!-- category pills populated by buildCategoryPills() -->
+  </div>
+</div>
+
+<main>
+  <section class="feed">
+    <div class="feed-header">
+      <div class="label" id="feed-label">All Stories</div>
+      <div class="meta" id="feed-meta">—</div>
+    </div>
+    <div id="errors"></div>
+    <div id="stories"><div class="loading">Fetching feeds</div></div>
+  </section>
+
+  <aside>
+    <section>
+      <h3>By Category</h3>
+      <div id="category-stats"></div>
+    </section>
+    <section>
+      <h3>Sources</h3>
+      <div id="source-stats"></div>
+    </section>
+    <section>
+      <h3>Cache Status</h3>
+      <div id="cache-stats" style="font-size:12px;color:var(--text-muted);line-height:1.6"></div>
+      <button id="clear-cache" style="margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--text-faint);padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer">Clear archive</button>
+    </section>
+    <section>
+      <h3>How it works</h3>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.55">
+        Click <strong style="color:var(--accent)">+ Paste RSS Feed</strong> in the header,
+        then paste the XML from any RSS feed (right-click feed URL → View Page Source).
+        Items are tagged by category using English + Somali keyword matching, and stored
+        in your browser. The <strong>Sources</strong> panel above shows when each feed
+        was last pasted — sorted with never-pasted and oldest first, so the next thing
+        to update is always at the top. Hover any source for its URL.
+      </p>
+      <p style="font-size:12px;color:var(--red);line-height:1.55;margin-top:10px;border-left:2px solid var(--red);padding-left:10px">
+        ⚠ Stories from <strong>Calamada</strong> are auto-detected and flagged as
+        <strong>AS-aligned</strong>. Treat as adversarial source material, not independent reporting.
+      </p>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <div>Built for analytical use · Local archive · Manual ingestion</div>
+  <div id="last-updated">—</div>
+</footer>
+
+<script>
+/* ---------- CONFIG ---------- */
+
+// This tracker runs entirely in your browser. No server, no API, no proxy.
+// You paste RSS XML directly using the "Paste RSS Feed" button in the header.
+// The cache (localStorage) deduplicates, so re-pasting a feed adds new items
+// without creating duplicates, and your archive accumulates over time.
+
+// Known sources — used both to detect pasted feeds (by URL/title match) and to
+// populate the Sources panel in the sidebar. Add or remove entries as needed.
+// Order here is the default display order before sorting by oldest-update-first.
+const KNOWN_SOURCES = [
+  { name: 'CBA TV',          url: 'https://cbatv.net/feed/',
+    match: /cbatv\.net/i },
+  { name: 'Daily Somalia',   url: 'https://dailysomalia.com/feed/',
+    match: /dailysomalia/i },
+  { name: 'Dhacdo',          url: 'https://dhacdo.net/feed/',
+    match: /dhacdo/i },
+  { name: 'Radio Muqdisho',  url: 'https://radiomuqdisho.so/feed/',
+    match: /radiomuqdisho/i },
+  { name: 'Radio Dalsan',    url: 'https://www.radiodalsan.com/feed/',
+    match: /radiodalsan/i },
+  { name: 'Radio Ergo',      url: 'https://radioergo.org/feed/',
+    match: /radioergo/i },
+  { name: 'Somali Guardian', url: 'https://www.somaliguardian.com/feed/',
+    match: /somaliguardian/i },
+  { name: 'WardheerNews',    url: 'https://wardheernews.com/feed/',
+    match: /wardheernews/i },
+  { name: 'Somaliweyn',      url: 'https://somaliweyn.org/feed',
+    match: /somaliweyn/i },
+  { name: 'Qaran News',      url: 'https://qarannews.com/feed',
+    match: /qarannews/i },
+  { name: 'Caasimada',       url: 'https://caasimada.net/feed',
+    match: /caasimada/i },
+  { name: 'Raxanreeb',       url: 'https://www.raxanreeb.com/feed/',
+    match: /raxanreeb/i },
+  { name: 'Goobjoog',        url: 'https://goobjoog.com/feed/',
+    match: /goobjoog/i },
+  { name: 'Mareeg',          url: 'https://www.mareeg.com/feed/',
+    match: /mareeg/i },
+  { name: 'Horseed Media',   url: 'https://horseedmedia.net/category/news/feed/',
+    match: /horseedmedia/i },
+  { name: 'Calamada',        url: 'https://calamada1.com/feed/',
+    match: /calamada/i, flag: 'as_aligned', flagLabel: 'AS-aligned' }
+];
+
+// Categories registry. Each category has a `label`, its keyword match list, a display
+// color (color class name), and optional `parent` (for hierarchical nesting in the UI).
+// Keyword matching is unchanged — stories get tagged with every matching category,
+// including both parent and children when applicable.
+const CATEGORIES = {
+  federal_gov: {
+    label: 'Federal Government',
+    color: 'amber',
+    keywords: [
+      // English
+      'hassan sheikh', 'mohamud', 'hamza abdi barre', 'hamza barre',
+      'federal government', 'villa somalia', 'cabinet', 'prime minister',
+      'council of ministers', 'mogadishu administration', 'fgs',
+      'president of somalia', 'somali president', 'somali pm',
+      'minister of finance', 'minister of interior',
+      // Somali
+      'madaxweyne', 'madaxweynaha', 'xasan sheekh', 'xamza cabdi', 'xamza barre',
+      'ra\u0027iisul wasaare', 'raysul wasaare', 'raisal wasaare',
+      'dowladda federaalka', 'dowladda dhexe', 'xukuumadda',
+      'golaha wasiirrada', 'wasiirka', 'madaxtooyada', 'villa soomaaliya'
+    ]
+  },
+
+  fms: {
+    label: 'Federal Member States',
+    color: 'blue',
+    keywords: [
+      // English — generic FMS-level terms only; state-specific terms live in children
+      'federal member state', ' fms ', 'state president',
+      'federal member states', 'regional state', 'regional administration',
+      // Somali
+      'madaxweynaha gobolka', 'maamulka', 'maamul goboleed', 'dawlad goboleed',
+      'dowlad goboleed', 'gobolada'
+    ]
+  },
+  puntland: {
+    label: 'Puntland',
+    color: 'blue-1',
+    parent: 'fms',
+    keywords: [
+      'puntland', 'said deni', 'said abdullahi deni', 'saciid deni',
+      'garowe', 'garoowe', 'bosaso', 'boosaaso'
+    ]
+  },
+  jubaland: {
+    label: 'Jubaland',
+    color: 'blue-2',
+    parent: 'fms',
+    keywords: [
+      'jubaland', 'jubbaland', 'ahmed madobe', 'axmed madoobe',
+      'kismayo', 'kismaayo'
+    ]
+  },
+  galmudug: {
+    label: 'Galmudug',
+    color: 'blue-3',
+    parent: 'fms',
+    keywords: [
+      'galmudug', 'galmudugga', 'qoor qoor', 'qoorqoor', 'cabdiraxiim qoor qoor',
+      'dhusamareb', 'dhuusamareeb', 'dhusamareeb'
+    ]
+  },
+  hirshabelle: {
+    label: 'Hirshabelle',
+    color: 'blue-4',
+    parent: 'fms',
+    keywords: [
+      'hirshabelle', 'hirshabeelle', 'jowhar', 'jawhar', 'beledweyne',
+      'beledweyn'
+    ]
+  },
+  southwest: {
+    label: 'Southwest',
+    color: 'blue-5',
+    parent: 'fms',
+    keywords: [
+      'south west state', 'southwest state', 'south-west state', 'koonfur galbeed',
+      'koonfur-galbeed', 'baidoa', 'baydhabo', 'abdiasis laftagaren',
+      'cabdicasiis laftagaren'
+    ]
+  },
+
+  somaliland: {
+    label: 'Somaliland',
+    color: 'purple',
+    keywords: [
+      'somaliland', 'hargeisa', 'hargeysa', 'irro', 'muse bihi', 'muuse biixi',
+      'berbera', 'berbero', 'somaliland mou'
+    ]
+  },
+
+  security_forces: {
+    label: 'Security Forces',
+    color: 'green',
+    keywords: [
+      // English — state/allied security actors and their ops
+      'atmis', 'aussom', 'amisom', 'danab', 'sna', 'somali national army',
+      'security forces', 'somali police', 'airstrike', 'operation',
+      'offensive', 'counter-terror', 'counterterror', 'counter-terrorism',
+      'macawisley', 'macawiisley', 'nisa', 'turkish air force',
+      // Somali
+      'ciidamada', 'ciidanka', 'ciidamo', 'xoogga dalka', 'booliska',
+      'nabad-galyo', 'nabadgalyo', 'amniga',
+      'difaaca', 'hubeysan', 'hubaysan', 'guutooyinka', 'xoogga'
+    ]
+  },
+  al_shabaab: {
+    label: 'Al-Shabaab',
+    color: 'red',
+    keywords: [
+      'al-shabaab', 'al shabaab', 'shabaab', 'al-shabab',
+      'harakat', 'mujahideen', 'al-kataib',
+      'argagixiso', 'argagixisada', 'argagixisadda'
+    ]
+  },
+  isis_somalia: {
+    label: 'ISIS-Somalia',
+    color: 'crimson',
+    keywords: [
+      'isis-somalia', 'islamic state somalia', 'is-somalia', 'isis somalia',
+      'daesh somalia', 'daacish', 'wilayat somalia',
+      'cabdulqaadir muumin', 'abdulqadir mumin',
+      'bari mountains', 'cal miskaad', 'al miskaad'
+    ]
+  },
+
+  foreign: {
+    label: 'Foreign Relations',
+    color: 'teal',
+    keywords: [
+      // English
+      'ethiopia', 'eritrea', 'kenya', 'egypt', 'turkey', 'turkish', 'uae',
+      'emirates', 'qatar', 'saudi', 'china', 'chinese', 'united states',
+      'us embassy', 'ambassador', 'foreign minister', 'diplomatic',
+      'bilateral', 'agreement', 'mou', 'memorandum', 'port deal',
+      'ankara', 'addis ababa', 'nairobi', 'cairo', 'egyptian',
+      'ethiopian', 'african union', 'igad', 'arab league',
+      // Somali
+      'itoobiya', 'itoobiyaan', 'ereteriya', 'eertereya', 'kiiniya',
+      'masar', 'masaarida', 'turki', 'turkiga', 'imaaraadka', 'qadar',
+      'sacuudiga', 'shiinaha', 'mareykanka', 'maraykanka',
+      'safiir', 'safiirka', 'wasiirka arrimaha dibadda', 'arrimaha dibadda',
+      'heshiis', 'xiriirka', 'xidhiidhka', 'midowga afrika',
+      'jaamacadda carabta'
+    ]
+  },
+
+  elections: {
+    label: 'Elections & Constitution',
+    color: 'lavender',
+    keywords: [
+      // English
+      'election', 'electoral', 'vote', 'voter', 'constitution',
+      'constitutional', 'parliament', 'parliamentary', 'ncc',
+      'national consultative', 'one person one vote', 'opov', 'suffrage',
+      'referendum', 'speaker of parliament', 'lower house', 'upper house',
+      'electoral commission', 'national independent electoral',
+      // Somali
+      'doorasho', 'doorashada', 'doorashooyin', 'codbixin', 'codbixiyayaal',
+      'cod', 'codad', 'dastuurka', 'dastuur', 'baarlamaanka', 'baarlamaan',
+      'aqalka sare', 'aqalka hoose', 'guddoomiyaha baarlamaanka',
+      'guddiga doorashooyinka', 'aftida', 'aftidu',
+      'qof iyo cod', 'shacabku doortay'
+    ]
+  }
+};
+
+// (No proxy/fetch needed — feeds are pasted manually by the user)
+
+
+/* ---------- STATE ---------- */
+let allStories = [];
+let activeCategory = 'all';
+let activeDays = 7;        // default: past 7 days
+let searchQuery = '';
+let fetchErrors = [];
+
+const CACHE_KEY = 'somalia-tracker-archive-v1';
+const PASTE_LOG_KEY = 'somalia-tracker-paste-log-v1';
+const CACHE_PRUNE_DAYS = 45;   // drop anything older than this from the archive
+
+/* ---------- HELPERS ---------- */
+function stripHtml(html = '') {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return (div.textContent || div.innerText || '').replace(/\s+/g, ' ').trim();
+}
+
+function escapeAttr(s = '') {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escapeHtml(s = '') {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function isSomaliaRelevant(text) {
+  const lower = text.toLowerCase();
+  return SOMALIA_TOKENS.some(t => lower.includes(t));
+}
+
+function categorize(text) {
+  const lower = text.toLowerCase();
+  const cats = new Set();
+  for (const [key, def] of Object.entries(CATEGORIES)) {
+    if (def.keywords.some(k => lower.includes(k))) {
+      cats.add(key);
+      // When a child category matches, auto-tag the parent too so parent filters work
+      if (def.parent) cats.add(def.parent);
+    }
+  }
+  return Array.from(cats);
+}
+
+function timeAgo(date) {
+  const now = new Date();
+  const d = new Date(date);
+  if (isNaN(d)) return { day: '—', time: '' };
+  const diff = (now - d) / 1000;
+  if (diff < 60) return { day: 'now', time: '' };
+  if (diff < 3600) return { day: Math.floor(diff / 60) + 'm', time: '' };
+  if (diff < 86400) return { day: Math.floor(diff / 3600) + 'h', time: d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) };
+  if (diff < 86400 * 7) return { day: Math.floor(diff / 86400) + 'd', time: d.toLocaleDateString([], {month:'short', day:'numeric'}) };
+  return { day: d.toLocaleDateString([], {month:'short', day:'numeric'}), time: d.getFullYear() };
+}
+
+// Compact relative-time string for paste-log entries: "5m ago", "2h ago", "yesterday", etc.
+function relativeTime(ts) {
+  if (!ts) return 'never';
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 86400 * 2) return 'yesterday';
+  if (diff < 86400 * 14) return Math.floor(diff / 86400) + 'd ago';
+  return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+// Robust copy-to-clipboard. The modern Clipboard API requires a secure context
+// (https or localhost), which fails when the file is opened from disk (file://).
+// Falls back to the legacy execCommand('copy') approach via a hidden textarea.
+async function copyToClipboard(text) {
+  // Try modern API first
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through
+    }
+  }
+  // Legacy fallback that works on file://
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+// Take the first N sentences of plain text. Tries to handle abbreviations gracefully.
+function firstSentences(text, n = 3) {
+  if (!text) return '';
+  // Strip common publisher prefixes like "MOGADISHU (Somaliguardian) –"
+  const cleaned = text.replace(/^[A-Z][A-Z\s]+\s*\([^)]+\)\s*[-–—]\s*/, '').trim();
+  // Match sentences ending in . ! ? followed by space or end-of-string
+  const matches = cleaned.match(/[^.!?]+[.!?]+(?=\s|$)/g);
+  if (!matches) return cleaned.slice(0, 400) + (cleaned.length > 400 ? '…' : '');
+  return matches.slice(0, n).join(' ').trim();
+}
+
+/* ---------- CACHE ---------- */
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // prune old entries
+    const cutoff = Date.now() - CACHE_PRUNE_DAYS * 86400 * 1000;
+    return parsed.filter(s => new Date(s.pubDate).getTime() > cutoff);
+  } catch (e) {
+    console.warn('Cache load failed:', e);
+    return [];
+  }
+}
+
+function saveCache(stories) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(stories));
+  } catch (e) {
+    console.warn('Cache save failed (likely quota):', e);
+  }
+}
+
+function dedupeStories(stories) {
+  const seen = new Map();
+  for (const s of stories) {
+    const key = (s.link || s.title).toLowerCase().trim();
+    if (!seen.has(key)) seen.set(key, s);
+  }
+  return Array.from(seen.values());
+}
+
+/* ---------- PASTE LOG ---------- */
+// Tracks "when did I last paste this source's feed?", separate from story cache.
+function loadPasteLog() {
+  try {
+    const raw = localStorage.getItem(PASTE_LOG_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePasteLog(log) {
+  try {
+    localStorage.setItem(PASTE_LOG_KEY, JSON.stringify(log));
+  } catch (e) {
+    console.warn('Paste log save failed:', e);
+  }
+}
+
+function recordPaste(sourceName) {
+  const log = loadPasteLog();
+  log[sourceName] = Date.now();
+  savePasteLog(log);
+}
+
+/* ---------- PARSE ---------- */
+
+// Find the text of the first direct child whose name matches any in tagNames.
+function directChildText(parent, tagNames) {
+  const wanted = tagNames.map(t => t.toLowerCase());
+  for (const child of parent.children) {
+    const tag = (child.tagName || '').toLowerCase();
+    const local = (child.localName || '').toLowerCase();
+    if (wanted.includes(tag) || wanted.includes(local)) {
+      return (child.textContent || '').trim();
+    }
+  }
+  return '';
+}
+
+function getAtomLink(item) {
+  for (const child of item.children) {
+    if ((child.localName || '').toLowerCase() !== 'link') continue;
+    const rel = child.getAttribute('rel');
+    if (!rel || rel === 'alternate') {
+      const href = child.getAttribute('href');
+      if (href) return href;
+    }
+  }
+  return '';
+}
+
+// Identify a pasted feed by inspecting its channel link/title against KNOWN_SOURCES.
+function detectSource(doc) {
+  const root = doc.documentElement;
+  const isAtom = (root.localName || root.tagName || '').toLowerCase() === 'feed';
+  const channel = isAtom ? root : (doc.getElementsByTagName('channel')[0] || root);
+
+  let feedTitle = '';
+  let feedLink = '';
+  for (const child of channel.children) {
+    const local = (child.localName || child.tagName || '').toLowerCase();
+    if (local === 'title' && !feedTitle) feedTitle = (child.textContent || '').trim();
+    if (local === 'link') {
+      const href = child.getAttribute('href') || child.textContent || '';
+      if (href && !feedLink) feedLink = href.trim();
+    }
+  }
+
+  const haystack = (feedLink + ' ' + feedTitle).toLowerCase();
+  const known = KNOWN_SOURCES.find(s => s.match.test(haystack));
+  if (known) {
+    return { name: known.name, flag: known.flag || null, flagLabel: known.flagLabel || null };
+  }
+  return { name: feedTitle || 'Unknown source', flag: null, flagLabel: null };
+}
+
+function parsePastedFeed(xmlText) {
+  if (!xmlText || xmlText.trim().length < 50) {
+    throw new Error('Pasted text is too short to be a valid RSS/Atom feed.');
+  }
+
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    throw new Error('Could not parse XML. Make sure you pasted the full feed source (right-click → View Page Source on the /feed/ URL).');
+  }
+
+  const root = doc.documentElement;
+  const isAtom = (root.localName || root.tagName || '').toLowerCase() === 'feed';
+  const itemNodeName = isAtom ? 'entry' : 'item';
+  const items = Array.from(doc.getElementsByTagName(itemNodeName));
+
+  if (!items.length) {
+    throw new Error('No <item> or <entry> elements found in the pasted XML.');
+  }
+
+  const sourceInfo = detectSource(doc);
+
+  return items.map(item => {
+    const title = directChildText(item, ['title']);
+    const link = isAtom ? getAtomLink(item) : directChildText(item, ['link']);
+    const pubDate = directChildText(item, ['pubdate', 'published', 'updated', 'date']);
+    const description = directChildText(item, ['description', 'summary']);
+    const content = directChildText(item, ['encoded', 'content']);
+
+    const cleanDescription = stripHtml(description);
+    const cleanContent = stripHtml(content);
+    // Prefer the longer of description vs content as the snippet
+    const snippet = cleanContent.length > cleanDescription.length ? cleanContent : cleanDescription;
+    const text = title + ' ' + cleanDescription + ' ' + cleanContent;
+
+    return {
+      title: title || 'Untitled',
+      link,
+      description: snippet,
+      fullContent: cleanContent,
+      pubDate: pubDate || new Date().toISOString(),
+      source: sourceInfo.name,
+      flag: sourceInfo.flag,
+      flagLabel: sourceInfo.flagLabel,
+      text,
+      categories: categorize(text)
+    };
+  });
+}
+
+// Process pasted XML: parse, merge with cache, dedupe, persist, render.
+function ingestPastedFeed(xmlText) {
+  let newStories;
+  try {
+    newStories = parsePastedFeed(xmlText);
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+
+  const before = allStories.length;
+  const merged = dedupeStories([...newStories, ...allStories])
+    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  allStories = merged;
+  saveCache(merged);
+
+  const added = merged.length - before;
+  const sourceName = newStories[0]?.source || 'feed';
+  recordPaste(sourceName);
+  document.getElementById('status-text').textContent = `Local · ${merged.length} archived`;
+  document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  render();
+
+  return { ok: true, added, total: newStories.length, source: sourceName };
+}
+
+// Re-run categorize() on every cached story. Needed when the CATEGORIES registry
+// has changed since stories were first ingested (e.g. new child categories added).
+// Uses the story's stored `text` blob so we don't need the original XML.
+function recategorizeAll() {
+  let changed = 0;
+  for (const s of allStories) {
+    if (!s.text) continue;
+    const newCats = categorize(s.text);
+    // Compare sets to detect actual changes
+    const oldSet = new Set(s.categories || []);
+    const newSet = new Set(newCats);
+    if (oldSet.size !== newSet.size || [...newSet].some(c => !oldSet.has(c))) {
+      s.categories = newCats;
+      changed++;
+    }
+  }
+  if (changed > 0) {
+    saveCache(allStories);
+    console.log(`Re-categorized ${changed} stories after registry change.`);
+  }
+  return changed;
+}
+
+/* ---------- 24H BRIEF ---------- */
+
+// Get stories published in the last 24 hours from click time.
+function getStoriesInWindow() {
+  const cutoff = Date.now() - 24 * 3600 * 1000;
+  return allStories
+    .filter(s => new Date(s.pubDate).getTime() >= cutoff)
+    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+}
+
+// Normalize a title for similarity comparison: lowercase, strip punctuation,
+// drop common stopwords so "Somalia's president says" matches "President says".
+function normalizeTitle(title) {
+  const stop = new Set(['a','an','the','of','in','on','at','to','and','or','is','are','was','were','says','said','for','by','with','from','over','under']);
+  return (title || '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w && !stop.has(w))
+    .join(' ');
+}
+
+// Simple Jaccard similarity on normalized title tokens.
+function titleSimilarity(a, b) {
+  const tokensA = new Set(normalizeTitle(a).split(' ').filter(Boolean));
+  const tokensB = new Set(normalizeTitle(b).split(' ').filter(Boolean));
+  if (!tokensA.size || !tokensB.size) return 0;
+  let intersect = 0;
+  for (const t of tokensA) if (tokensB.has(t)) intersect++;
+  const union = tokensA.size + tokensB.size - intersect;
+  return intersect / union;
+}
+
+// Find cross-source duplicate clusters. Returns Map<storyLink, [otherStoryRefs...]>.
+// Threshold of 0.5 catches similar headlines without being too aggressive.
+function findDuplicates(stories) {
+  const dupeMap = new Map();
+  const SIMILARITY_THRESHOLD = 0.5;
+  for (let i = 0; i < stories.length; i++) {
+    for (let j = i + 1; j < stories.length; j++) {
+      const a = stories[i], b = stories[j];
+      if (a.source === b.source) continue;  // only flag cross-source
+      if (titleSimilarity(a.title, b.title) >= SIMILARITY_THRESHOLD) {
+        if (!dupeMap.has(a.link)) dupeMap.set(a.link, []);
+        if (!dupeMap.has(b.link)) dupeMap.set(b.link, []);
+        dupeMap.get(a.link).push(b);
+        dupeMap.get(b.link).push(a);
+      }
+    }
+  }
+  return dupeMap;
+}
+
+// Group stories by top-level category. Uses category hierarchy: parent categories
+// collect stories that match them OR any of their children.
+function groupByTopCategory(stories) {
+  const topLevel = Object.entries(CATEGORIES).filter(([, d]) => !d.parent);
+  const groups = new Map();
+  const assigned = new Set();
+
+  // First pass: assign each story to its most specific top-level match.
+  // A story tagged both 'fms' and 'foreign' goes under 'fms' first by registry order.
+  for (const [topKey, topDef] of topLevel) {
+    const matching = stories.filter(s => {
+      if (assigned.has(s.link)) return false;
+      return s.categories.includes(topKey);
+    });
+    if (matching.length) {
+      groups.set(topKey, { def: topDef, stories: matching });
+      for (const s of matching) assigned.add(s.link);
+    }
+  }
+
+  // Anything uncategorized goes under 'Uncategorized'
+  const leftover = stories.filter(s => !assigned.has(s.link));
+  if (leftover.length) {
+    groups.set('_uncategorized', {
+      def: { label: 'Uncategorized' },
+      stories: leftover
+    });
+  }
+
+  return groups;
+}
+
+// Format a Date as "HH:MM Mon DD"
+function formatBriefTime(date) {
+  const d = new Date(date);
+  return d.toLocaleString([], {
+    hour: '2-digit', minute: '2-digit',
+    month: 'short', day: 'numeric'
+  });
+}
+
+function escapeHtmlSafe(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Render the extractive view into the modal body.
+function renderBrief() {
+  const stories = getStoriesInWindow();
+  const windowEl = document.getElementById('brief-window');
+  const contentEl = document.getElementById('brief-content');
+
+  const now = new Date();
+  const start = new Date(now.getTime() - 24 * 3600 * 1000);
+  const sourceSet = new Set(stories.map(s => s.source));
+
+  windowEl.innerHTML = `
+    <span><span class="brief-window-label">Window:</span> ${formatBriefTime(start)} → ${formatBriefTime(now)}</span>
+    <span><span class="brief-window-count">${stories.length}</span> stories · <span class="brief-window-count">${sourceSet.size}</span> source${sourceSet.size === 1 ? '' : 's'}</span>
+  `;
+
+  if (stories.length === 0) {
+    contentEl.innerHTML = `
+      <div class="brief-empty">
+        <strong>No stories</strong> in the last 24 hours.<br>
+        Paste one or more feeds before generating a brief.
+      </div>
+    `;
+    return;
+  }
+
+  if (stories.length < 3) {
+    contentEl.innerHTML = `
+      <div class="brief-empty">
+        Only <strong>${stories.length}</strong> stor${stories.length === 1 ? 'y' : 'ies'} in window.<br>
+        Brief will be sparse — consider pasting more feeds first.
+      </div>
+    ` + renderBriefSections(stories);
+    return;
+  }
+
+  contentEl.innerHTML = renderBriefSections(stories);
+}
+
+function renderBriefSections(stories) {
+  // Separate adversarial (AS-aligned) from independent
+  const independent = stories.filter(s => !s.flag);
+  const adversarial = stories.filter(s => s.flag);
+  const dupeMap = findDuplicates(independent);  // dupes within independent only
+
+  let html = '';
+
+  if (independent.length) {
+    const groups = groupByTopCategory(independent);
+    for (const [, group] of groups) {
+      html += `
+        <div class="brief-section">
+          <h3>${group.def.label}<span class="brief-section-count">${group.stories.length} STOR${group.stories.length === 1 ? 'Y' : 'IES'}</span></h3>
+          ${group.stories.map(s => renderBriefItem(s, dupeMap)).join('')}
+        </div>
+      `;
+    }
+  }
+
+  if (adversarial.length) {
+    html += `
+      <div class="brief-section brief-adversarial">
+        <h3>AS-aligned source<span class="brief-section-count">${adversarial.length} STOR${adversarial.length === 1 ? 'Y' : 'IES'}</span></h3>
+        ${adversarial.map(s => renderBriefItem(s, new Map())).join('')}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function renderBriefItem(story, dupeMap) {
+  const t = formatBriefTime(story.pubDate);
+  const dupes = dupeMap.get(story.link);
+  const dupeBadge = (dupes && dupes.length)
+    ? `<span class="brief-dup" title="${escapeHtmlSafe(dupes.map(d => d.source).join(', '))}">also in ${dupes.length === 1 ? dupes[0].source : `${dupes.length} sources`}</span>`
+    : '';
+  return `
+    <div class="brief-item">
+      <a class="brief-item-title" href="${escapeHtmlSafe(story.link)}" target="_blank" rel="noopener">${escapeHtmlSafe(story.title)}</a>
+      <div class="brief-item-meta">
+        <span>${escapeHtmlSafe(story.source)}</span>
+        <span>${t}</span>
+        ${dupeBadge}
+      </div>
+    </div>
+  `;
+}
+
+// Build the AI prompt payload (clipboard-ready markdown).
+function buildAIPrompt() {
+  const stories = getStoriesInWindow();
+  const independent = stories.filter(s => !s.flag);
+  const adversarial = stories.filter(s => s.flag);
+
+  const now = new Date();
+  const start = new Date(now.getTime() - 24 * 3600 * 1000);
+
+  const formatStory = (s) => {
+    const bodyText = (s.fullContent && s.fullContent.length > 50)
+      ? s.fullContent.slice(0, 1500)  // trim long articles to keep prompt size reasonable
+      : (s.description || '');
+    return `### ${s.source} · ${formatBriefTime(s.pubDate)}
+"${s.title}"
+${bodyText}
+`;
+  };
+
+  let out = `You are an intelligence analyst briefing a colleague on the past 24 hours of Somalia political news. Produce a concise brief (4-6 short paragraphs) grouped by THEME, not by source. Identify the 3-5 most consequential developments, explain what actually changed, and flag any tensions or contradictions across sources. Use neutral, factual language. Note any events that both independent and adversarial sources covered.
+
+Time window: ${formatBriefTime(start)} → ${formatBriefTime(now)} (Mogadishu local)
+Sources in window: ${[...new Set(stories.map(s => s.source))].join(', ')}
+
+`;
+
+  if (independent.length) {
+    out += `=== INDEPENDENT REPORTING (${independent.length} stories) ===\n\n`;
+    out += independent.map(formatStory).join('\n');
+  }
+
+  if (adversarial.length) {
+    out += `\n=== AS-ALIGNED SOURCE — treat as adversarial propaganda, NOT independent reporting (${adversarial.length} stories) ===\n\n`;
+    out += adversarial.map(formatStory).join('\n');
+  }
+
+  out += `\n=== END ===\n\nPlease produce the brief now.`;
+  return out;
+}
+
+// Build plain-markdown version (for Copy as Markdown button).
+function buildMarkdownBrief() {
+  const stories = getStoriesInWindow();
+  const independent = stories.filter(s => !s.flag);
+  const adversarial = stories.filter(s => s.flag);
+  const now = new Date();
+  const start = new Date(now.getTime() - 24 * 3600 * 1000);
+  const dupeMap = findDuplicates(independent);
+
+  let out = `# 24-Hour Brief
+**Window:** ${formatBriefTime(start)} → ${formatBriefTime(now)}
+**Stories:** ${stories.length} from ${new Set(stories.map(s => s.source)).size} source(s)
+
+`;
+
+  if (independent.length) {
+    const groups = groupByTopCategory(independent);
+    for (const [, group] of groups) {
+      out += `## ${group.def.label} (${group.stories.length})\n\n`;
+      for (const s of group.stories) {
+        const dupes = dupeMap.get(s.link);
+        const dupeNote = (dupes && dupes.length) ? ` _(also in ${dupes.map(d => d.source).join(', ')})_` : '';
+        out += `- **${s.title}** — ${s.source}, ${formatBriefTime(s.pubDate)}${dupeNote}\n  ${s.link}\n\n`;
+      }
+    }
+  }
+
+  if (adversarial.length) {
+    out += `## ⚠ AS-Aligned Source (${adversarial.length}) — adversarial, not independent reporting\n\n`;
+    for (const s of adversarial) {
+      out += `- **${s.title}** — ${s.source}, ${formatBriefTime(s.pubDate)}\n  ${s.link}\n\n`;
+    }
+  }
+
+  return out;
+}
+
+/* ---------- AUTO-LOAD FROM GITHUB ---------- */
+// When deployed on GitHub Pages, fetch data/feeds.json (updated every 12h by the
+// Actions workflow) and merge into local cache. Works transparently if the file
+// is missing — tracker falls back to manual-paste mode.
+async function loadRemoteFeeds() {
+  try {
+    const res = await fetch('data/feeds.json', { cache: 'no-cache' });
+    if (!res.ok) return { ok: false, reason: 'not-found' };
+    const data = await res.json();
+    if (!data || !Array.isArray(data.items)) return { ok: false, reason: 'bad-format' };
+
+    // Each incoming item needs categorization + paste-log entry per source
+    const processed = data.items.map(item => {
+      const text = (item.title || '') + ' ' + (item.description || '') + ' ' + (item.fullContent || '');
+      return {
+        ...item,
+        text,
+        categories: categorize(text),
+      };
+    });
+
+    // Merge with local cache, dedupe by link
+    const merged = dedupeStories([...processed, ...allStories])
+      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+    const before = allStories.length;
+    allStories = merged;
+    saveCache(merged);
+
+    // Update paste-log for every source that contributed items
+    const log = loadPasteLog();
+    const stamp = data.generated_at ? new Date(data.generated_at).getTime() : Date.now();
+    const sourcesSeen = new Set(processed.map(i => i.source));
+    for (const src of sourcesSeen) log[src] = stamp;
+    savePasteLog(log);
+
+    return {
+      ok: true,
+      total: processed.length,
+      added: merged.length - before,
+      generated_at: data.generated_at
+    };
+  } catch (e) {
+    console.warn('Remote feed load failed:', e);
+    return { ok: false, reason: 'fetch-error', error: e.message };
+  }
+}
+
+// Initial bootstrap: load cache, then try to pull fresh data from GitHub.
+async function loadAll() {
+  const cached = loadCache();
+  allStories = cached.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+  if (allStories.length) recategorizeAll();
+
+  // Show cached content immediately
+  document.getElementById('status-text').textContent = allStories.length
+    ? `Local · ${allStories.length} archived · syncing…`
+    : 'Syncing feeds…';
+  if (allStories.length) {
+    document.getElementById('last-updated').textContent = 'Loaded from cache';
+  }
+  render();
+
+  // Now try to pull fresh data from the auto-fetcher
+  const result = await loadRemoteFeeds();
+  if (result.ok) {
+    const genTime = result.generated_at ? new Date(result.generated_at).toLocaleString() : 'unknown';
+    document.getElementById('status-text').textContent = `Auto-sync · ${allStories.length} archived`;
+    document.getElementById('last-updated').textContent = `Feeds updated ${genTime}`;
+    render();
+    console.log(`Auto-sync: ${result.added} new items (${result.total} total in feeds.json)`);
+  } else {
+    // No remote data yet (first-run, local file, or fetch failure) — fall back silently
+    document.getElementById('status-text').textContent = allStories.length
+      ? `Local · ${allStories.length} archived`
+      : 'Empty · paste a feed to begin';
+    if (!allStories.length) {
+      document.getElementById('last-updated').textContent = '';
+    }
+  }
+}
+
+
+/* ---------- RENDER ---------- */
+
+// Build the category pills from the CATEGORIES registry. Child categories render
+// immediately after their parent, visually indented via the .pill-child class.
+function buildCategoryPills() {
+  const container = document.getElementById('category-pills');
+  // Preserve the "All" pill (already in DOM), remove any others, then append generated
+  container.querySelectorAll('.pill:not([data-cat="all"])').forEach(p => p.remove());
+
+  const topLevel = Object.entries(CATEGORIES).filter(([, def]) => !def.parent);
+
+  for (const [key, def] of topLevel) {
+    container.appendChild(makePill(key, def, false));
+
+    // If this category has children, append them right after, flagged as children
+    const children = Object.entries(CATEGORIES).filter(([, d]) => d.parent === key);
+    for (const [childKey, childDef] of children) {
+      container.appendChild(makePill(childKey, childDef, true));
+    }
+  }
+
+  // Attach the category-filter click handler to all pills (including All).
+  // Using a delegated listener keeps this idempotent even if the function re-runs.
+  container.onclick = (e) => {
+    const pill = e.target.closest('.pill');
+    if (!pill || !container.contains(pill)) return;
+    container.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    pill.classList.add('active');
+    activeCategory = pill.dataset.cat;
+    render();
+  };
+}
+
+function makePill(key, def, isChild) {
+  const btn = document.createElement('button');
+  btn.className = 'pill' + (isChild ? ' pill-child' : '') + ' pill-' + (def.color || 'neutral');
+  btn.dataset.cat = key;
+  btn.innerHTML = `${def.label} <span class="count" id="count-${key}">0</span>`;
+  return btn;
+}
+
+function render() {
+  // counts (within current date window)
+  let countingPool = allStories;
+  if (activeDays > 0) {
+    const cutoff = Date.now() - activeDays * 86400 * 1000;
+    countingPool = allStories.filter(s => new Date(s.pubDate).getTime() > cutoff);
+  }
+  const counts = { all: countingPool.length };
+  for (const key of Object.keys(CATEGORIES)) counts[key] = 0;
+  for (const s of countingPool) {
+    for (const c of s.categories) if (counts[c] !== undefined) counts[c]++;
+  }
+  for (const k of Object.keys(counts)) {
+    const el = document.getElementById('count-' + k);
+    if (el) el.textContent = counts[k];
+  }
+
+  // filter
+  const q = searchQuery.toLowerCase().trim();
+  let filtered = allStories;
+
+  // date range filter
+  if (activeDays > 0) {
+    const cutoff = Date.now() - activeDays * 86400 * 1000;
+    filtered = filtered.filter(s => new Date(s.pubDate).getTime() > cutoff);
+  }
+
+  if (activeCategory !== 'all') {
+    filtered = filtered.filter(s => s.categories.includes(activeCategory));
+  }
+  if (q) {
+    filtered = filtered.filter(s => s.text.toLowerCase().includes(q));
+  }
+
+  // header label
+  const label = activeCategory === 'all' ? 'All Stories' : CATEGORIES[activeCategory].label;
+  document.getElementById('feed-label').textContent = label;
+  document.getElementById('feed-meta').textContent = filtered.length + ' result' + (filtered.length !== 1 ? 's' : '');
+
+  // errors
+  const errBox = document.getElementById('errors');
+  if (fetchErrors.length) {
+    errBox.innerHTML = '<div class="error-banner">Failed: ' + fetchErrors.map(e => e.source).join(' · ') + '</div>';
+  } else {
+    errBox.innerHTML = '';
+  }
+
+  // stories
+  const box = document.getElementById('stories');
+  if (!filtered.length) {
+    box.innerHTML = '<div class="empty">No stories match the current filters.</div>';
+  } else {
+    box.innerHTML = filtered.map(s => {
+      const t = timeAgo(s.pubDate);
+      const tags = s.categories.map(c => {
+        const def = CATEGORIES[c];
+        if (!def) return '';
+        return `<span class="tag color-${def.color || 'amber'}">${def.label}</span>`;
+      }).join('');
+      const flagBadge = s.flag ? `<span class="flag-badge">${s.flagLabel || s.flag}</span>` : '';
+      const flaggedClass = s.flag ? ' flagged' : '';
+
+      let summaryBlock = '';
+
+      return `
+        <article class="story${flaggedClass}" data-story-link="${escapeAttr(s.link)}">
+          <div class="story-time">
+            <div class="day">${t.day}</div>
+            <div>${t.time}</div>
+          </div>
+          <div class="story-body">
+            <h2><button class="story-title-btn" type="button">${s.title}</button></h2>
+            ${summaryBlock}
+            <div class="story-snippet">${s.description}</div>
+            <div class="story-meta">
+              <span class="story-source">${s.source}</span>
+              ${flagBadge}
+              ${tags}
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  // sidebar stats
+  const cs = document.getElementById('category-stats');
+  cs.innerHTML = Object.entries(CATEGORIES).map(([k, def]) => {
+    const indentClass = def.parent ? ' stat-child' : '';
+    const colorClass = 'color-' + (def.color || 'amber');
+    return `
+    <div class="stat-row${indentClass}">
+      <span class="label"><span class="swatch ${colorClass}"></span>${def.label}</span>
+      <span class="num">${counts[k]}</span>
+    </div>`;
+  }).join('');
+
+  // Build merged sources panel: registry sources + any pasted-but-unregistered sources.
+  const sourceCounts = {};
+  const sourceFlags = {};
+  const sourceOldest = {};
+  for (const s of allStories) {
+    sourceCounts[s.source] = (sourceCounts[s.source] || 0) + 1;
+    if (s.flag) sourceFlags[s.source] = true;
+    const t = new Date(s.pubDate).getTime();
+    if (!sourceOldest[s.source] || t < sourceOldest[s.source]) sourceOldest[s.source] = t;
+  }
+  const pasteLog = loadPasteLog();
+
+  // Union of registry names + names that appear in stories
+  const registryNames = new Set(KNOWN_SOURCES.map(k => k.name));
+  const orphanNames = Object.keys(sourceCounts).filter(n => !registryNames.has(n));
+
+  const rows = [
+    ...KNOWN_SOURCES.map(k => ({
+      name: k.name,
+      url: k.url,
+      flag: !!k.flag,
+      inRegistry: true,
+      count: sourceCounts[k.name] || 0,
+      lastPaste: pasteLog[k.name] || 0
+    })),
+    ...orphanNames.map(n => ({
+      name: n,
+      url: '',
+      flag: !!sourceFlags[n],
+      inRegistry: false,
+      count: sourceCounts[n] || 0,
+      lastPaste: pasteLog[n] || 0
+    }))
+  ];
+
+  // Sort: never-pasted first (need attention), then oldest paste, then newest
+  rows.sort((a, b) => {
+    if (!a.lastPaste && b.lastPaste) return -1;
+    if (a.lastPaste && !b.lastPaste) return 1;
+    return a.lastPaste - b.lastPaste;
+  });
+
+  const ss = document.getElementById('source-stats');
+  ss.innerHTML = rows.length ? rows.map(r => {
+    const flagCls = r.flag ? ' flagged' : '';
+    const orphanCls = r.inRegistry ? '' : ' orphan';
+    const lastLabel = r.lastPaste ? relativeTime(r.lastPaste) : 'never';
+    const neverCls = r.lastPaste ? '' : ' never';
+    const urlBlock = r.url ? `
+      <div class="source-url-row" title="Click URL to select; Copy button to copy">
+        <a class="source-url" href="${r.url}" target="_blank" rel="noopener">${r.url}</a>
+        <button class="source-copy" data-url="${r.url}" type="button">Copy URL</button>
+      </div>` : '';
+    return `
+      <div class="source-row-v2${flagCls}${orphanCls}">
+        <div class="source-main">
+          <span class="source-name">${r.name}${r.inRegistry ? '' : ' <em>(unregistered)</em>'}</span>
+          <span class="source-count">${r.count}</span>
+        </div>
+        <div class="source-sub">
+          <span class="source-last${neverCls}">${lastLabel}</span>
+        </div>
+        ${urlBlock}
+      </div>`;
+  }).join('') : '<div class="source-row"><span>No sources configured</span></div>';
+
+  // Wire up Copy URL buttons (re-bound on each render since markup is recreated)
+  ss.querySelectorAll('.source-copy').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const url = btn.dataset.url;
+      const ok = await copyToClipboard(url);
+      const original = btn.textContent;
+      if (ok) {
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+      } else {
+        btn.textContent = 'Select & copy ↓';
+        btn.classList.add('failed');
+        // Also auto-select the URL text so user can Cmd/Ctrl+C manually
+        const urlEl = btn.parentElement.querySelector('.source-url');
+        if (urlEl) {
+          const range = document.createRange();
+          range.selectNodeContents(urlEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied', 'failed');
+      }, 2200);
+    });
+  });
+
+  // Cache stats
+  const cacheBox = document.getElementById('cache-stats');
+  if (allStories.length) {
+    const oldest = Math.min(...Object.values(sourceOldest));
+    const oldestDate = new Date(oldest);
+    const daysBack = Math.floor((Date.now() - oldest) / 86400000);
+    cacheBox.innerHTML = `
+      <div><strong style="color:var(--text)">${allStories.length}</strong> stories archived</div>
+      <div>Oldest: <strong style="color:var(--text)">${oldestDate.toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'})}</strong> (${daysBack}d ago)</div>
+      <div style="color:var(--text-faint);margin-top:6px">Auto-prunes after ${CACHE_PRUNE_DAYS} days</div>
+    `;
+  } else {
+    cacheBox.innerHTML = '<div>Empty</div>';
+  }
+}
+
+/* ---------- EVENTS ---------- */
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  render();
+});
+document.querySelectorAll('#date-pills .pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('#date-pills .pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    activeDays = parseInt(p.dataset.days, 10);
+    render();
+  });
+});
+document.getElementById('refresh-btn')?.addEventListener('click', loadAll);
+
+/* ---------- PASTE MODAL ---------- */
+const pasteModal = document.getElementById('paste-modal');
+const pasteInput = document.getElementById('paste-input');
+const pasteFeedback = document.getElementById('paste-feedback');
+
+function openPasteModal() {
+  pasteModal.hidden = false;
+  pasteInput.value = '';
+  pasteFeedback.textContent = '';
+  pasteFeedback.className = 'paste-feedback';
+  setTimeout(() => pasteInput.focus(), 50);
+}
+function closePasteModal() {
+  pasteModal.hidden = true;
+}
+
+document.getElementById('paste-btn').addEventListener('click', openPasteModal);
+document.getElementById('modal-close').addEventListener('click', closePasteModal);
+document.getElementById('modal-cancel').addEventListener('click', closePasteModal);
+pasteModal.addEventListener('click', e => {
+  if (e.target === pasteModal) closePasteModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !pasteModal.hidden) closePasteModal();
+});
+
+document.getElementById('paste-submit').addEventListener('click', () => {
+  const xml = pasteInput.value.trim();
+  if (!xml) {
+    pasteFeedback.textContent = '⚠ Paste some XML first.';
+    pasteFeedback.className = 'paste-feedback err';
+    return;
+  }
+  const result = ingestPastedFeed(xml);
+  if (result.ok) {
+    pasteFeedback.textContent = `✓ ${result.source}: ${result.added} new, ${result.total - result.added} duplicates skipped.`;
+    pasteFeedback.className = 'paste-feedback ok';
+    setTimeout(closePasteModal, 1400);
+  } else {
+    pasteFeedback.textContent = '⚠ ' + result.error;
+    pasteFeedback.className = 'paste-feedback err';
+  }
+});
+
+/* ---------- PREVIEW MODAL ---------- */
+const previewModal = document.getElementById('preview-modal');
+
+function openPreview(story) {
+  document.getElementById('preview-title').textContent = story.title || 'Untitled';
+
+  // Build meta line: source + date + flag (if any)
+  const t = timeAgo(story.pubDate);
+  const dateLabel = t.time ? `${t.day} · ${t.time}` : t.day;
+  const metaParts = [
+    `<span>${escapeHtml(story.source || 'Unknown source')}</span>`,
+    `<span>${dateLabel}</span>`
+  ];
+  if (story.flag) {
+    metaParts.push(`<span class="preview-flag">${escapeHtml(story.flagLabel || story.flag)}</span>`);
+  }
+  document.getElementById('preview-meta').innerHTML = metaParts.join('');
+
+  // Generate summary: first 3 sentences of fullContent (preferred) or description
+  const sourceText = (story.fullContent && story.fullContent.length > 50)
+    ? story.fullContent
+    : story.description || '';
+  const summary = firstSentences(sourceText, 3);
+  const summaryEl = document.getElementById('preview-summary');
+  if (summary) {
+    summaryEl.textContent = summary;
+    summaryEl.classList.remove('empty');
+  } else {
+    summaryEl.textContent = 'No summary available — open the original article to read.';
+    summaryEl.classList.add('empty');
+  }
+
+  // Wire up the open-original button
+  const openBtn = document.getElementById('preview-open');
+  if (story.link) {
+    openBtn.href = story.link;
+    openBtn.style.display = '';
+  } else {
+    openBtn.style.display = 'none';
+  }
+
+  previewModal.hidden = false;
+}
+
+function closePreviewModal() {
+  previewModal.hidden = true;
+}
+
+document.getElementById('preview-close').addEventListener('click', closePreviewModal);
+document.getElementById('preview-cancel').addEventListener('click', closePreviewModal);
+previewModal.addEventListener('click', e => {
+  if (e.target === previewModal) closePreviewModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !previewModal.hidden) closePreviewModal();
+});
+
+// Delegated click handler for headline buttons (re-rendered on every render call)
+document.getElementById('stories').addEventListener('click', e => {
+  const btn = e.target.closest('.story-title-btn');
+  if (!btn) return;
+  const article = btn.closest('article.story');
+  if (!article) return;
+  const link = article.dataset.storyLink;
+  const story = allStories.find(s => s.link === link);
+  if (story) openPreview(story);
+});
+
+/* ---------- 24H BRIEF MODAL ---------- */
+const briefModal = document.getElementById('brief-modal');
+
+function openBriefModal() {
+  renderBrief();
+  briefModal.hidden = false;
+}
+function closeBriefModal() {
+  briefModal.hidden = true;
+}
+
+document.getElementById('brief-btn').addEventListener('click', openBriefModal);
+document.getElementById('brief-close').addEventListener('click', closeBriefModal);
+document.getElementById('brief-cancel').addEventListener('click', closeBriefModal);
+briefModal.addEventListener('click', e => {
+  if (e.target === briefModal) closeBriefModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !briefModal.hidden) closeBriefModal();
+});
+
+// Copy-button helper: brief feedback then reset
+function briefCopyWithFeedback(btn, payload, successMsg) {
+  copyToClipboard(payload).then(ok => {
+    const orig = btn.textContent;
+    if (ok) {
+      btn.textContent = successMsg;
+      btn.classList.add('copied');
+    } else {
+      btn.textContent = 'Copy failed — select text manually';
+      btn.classList.add('failed');
+    }
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied', 'failed');
+    }, 2200);
+  });
+}
+
+document.getElementById('brief-copy-md').addEventListener('click', (e) => {
+  const stories = getStoriesInWindow();
+  if (!stories.length) return;
+  briefCopyWithFeedback(e.currentTarget, buildMarkdownBrief(), 'Copied ✓');
+});
+
+document.getElementById('brief-copy-ai').addEventListener('click', (e) => {
+  const stories = getStoriesInWindow();
+  if (!stories.length) return;
+  briefCopyWithFeedback(e.currentTarget, buildAIPrompt(), 'Copied ✓ — paste into Claude.ai or ChatGPT');
+});
+
+document.getElementById('clear-cache').addEventListener('click', () => {
+  if (confirm('Clear the local archive AND reset paste timestamps? This cannot be undone.')) {
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(PASTE_LOG_KEY);
+    allStories = [];
+    render();
+    loadAll();
+  }
+});
+
+/* ---------- INIT ---------- */
+buildCategoryPills();
+loadAll();
+</script>
+
+</body>
+</html>
